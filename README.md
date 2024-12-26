@@ -1,17 +1,25 @@
-# subsapp
+# Subscriptions App
 
-A new Flutter project.
+## Pending to add:
 
-## Getting Started
+- Make the data persist in the app
 
-This project is a starting point for a Flutter application.
+- Error handling in add_subscription_screen:
+    - Allow only positive numbers in quantity mode
+    
+- Monthly Average Item Style 
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-# SubsApp
+- Categories:
+    - Adjust categories names
+    - Add custom categories
+    
+- Select an icon:
+    - Use real Platforms icons
+    - Each Icon will define the background color of the List Tile
+    
+- Adjust the pending time to pay logic
+    - Monthly returns days, Yearly months until less than 31 days, and Weekly return days
+    - Pending time format:  X Months, (if less than 31 days, X Days)
+    
+- Add notification option
+    - App will notify the user 1,2,3 days before the payment day
