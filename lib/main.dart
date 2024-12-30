@@ -33,6 +33,8 @@ class SubscriptionsScreen extends StatefulWidget {
 
 class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   List<Map<String, dynamic>> _subscriptions = [];
+  String _currentCurrency = 'USD'; // Moneda seleccionada
+  Map<String, double> _exchangeRates = {'USD': 1.0, 'EUR': 0.85, 'GBP': 0.75}; // Tipos de cambio
 
   @override
   void initState() {
@@ -44,8 +46,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? data = prefs.getString('subscriptions');
     if (data != null) {
+      final loadedSubscriptions = List<Map<String, dynamic>>.from(json.decode(data));
       setState(() {
-        _subscriptions = List<Map<String, dynamic>>.from(json.decode(data));
+        _subscriptions = loadedSubscriptions;
       });
     }
   }
@@ -69,7 +72,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     _saveSubscriptions();
   }
 
-  double _calculateMonthlyAverage() {
+  double _calculateAverage(String view) {
     if (_subscriptions.isEmpty) return 0.0;
     double total = 0.0;
 
@@ -77,20 +80,54 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       double amount = sub['amount'];
       String cycle = sub['billingCycle'];
 
-      if (cycle == 'Monthly') {
-        total += amount;
-      } else if (cycle == 'Yearly') {
-        total += amount / 12;
-      } else if (cycle == 'Weekly') {
-        total += amount * 4.33; // Aproximadamente 4.33 semanas por mes
+      if (view == 'Monthly') {
+        if (cycle == 'Monthly') {
+          total += amount;
+        } else if (cycle == 'Yearly') {
+          total += amount / 12;
+        } else if (cycle == 'Weekly') {
+          total += amount * 4.33;
+        }
+      } else if (view == 'Yearly') {
+        if (cycle == 'Monthly') {
+          total += amount * 12;
+        } else if (cycle == 'Yearly') {
+          total += amount;
+        } else if (cycle == 'Weekly') {
+          total += amount * 52;
+        }
+      } else if (view == 'Weekly') {
+        if (cycle == 'Monthly') {
+          total += amount / 4.33;
+        } else if (cycle == 'Yearly') {
+          total += amount / 52;
+        } else if (cycle == 'Weekly') {
+          total += amount;
+        }
       }
     }
+
     return total / _subscriptions.length;
+  }
+
+  void _switchCurrency() {
+    setState(() {
+      // Cambiar entre monedas
+      if (_currentCurrency == 'USD') {
+        _currentCurrency = 'EUR';
+      } else if (_currentCurrency == 'EUR') {
+        _currentCurrency = 'GBP';
+      } else if (_currentCurrency == 'GBP') {
+        _currentCurrency = 'USD';
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    double monthlyAverage = _calculateMonthlyAverage();
+    double monthlyAverage = _calculateAverage('Monthly') * _exchangeRates[_currentCurrency]!;
+    double yearlyAverage = _calculateAverage('Yearly') * _exchangeRates[_currentCurrency]!;
+    double weeklyAverage = _calculateAverage('Weekly') * _exchangeRates[_currentCurrency]!;
 
     return Scaffold(
       appBar: AppBar(
@@ -111,16 +148,40 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                     },
                   ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Monthly Average: \$${monthlyAverage.toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+                    Padding(
+            padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 35.0), // Más margen en la parte inferior
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap: _switchCurrency,
+                  child: Text(
+                    'Currency: $_currentCurrency',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Monthly Average: ${monthlyAverage.toStringAsFixed(2)} $_currentCurrency',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Yearly Average: ${yearlyAverage.toStringAsFixed(2)} $_currentCurrency',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Weekly Average: ${weeklyAverage.toStringAsFixed(2)} $_currentCurrency',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
           ),
+
         ],
       ),
       floatingActionButton: FloatingActionButton(

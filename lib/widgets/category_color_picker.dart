@@ -5,7 +5,7 @@ class CategoryColorPicker extends StatelessWidget {
   final Color selectedColor;
   final Function(String, Color) onCategoryChanged;
 
-  CategoryColorPicker({
+  CategoryColorPicker({super.key, 
     required this.selectedCategory,
     required this.selectedColor,
     required this.onCategoryChanged,
