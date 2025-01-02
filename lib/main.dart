@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:subsapp/components/subscription_card.dart';
 import 'package:subsapp/screens/add_subscription_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const MyApp());
@@ -34,7 +36,23 @@ class SubscriptionsScreen extends StatefulWidget {
 class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   List<Map<String, dynamic>> _subscriptions = [];
   String _currentCurrency = 'USD'; // Moneda seleccionada
-  Map<String, double> _exchangeRates = {'USD': 1.0, 'EUR': 0.85, 'GBP': 0.75}; // Tipos de cambio
+  Map<String, double> _exchangeRates = {
+    'USD': 1.0,
+    'EUR': 0.85,
+    'GBP': 0.75
+  }; // Tipos de cambio
+
+  Map<String, String> _currencySymbols = {
+    'USD': '\$', // Dollar
+    'EUR': '€', // Euro
+    'GBP': '£', // British Pound
+  };
+
+  String formatNumber(double number) {
+    final formatter =
+        NumberFormat("#,##0.00", "es_ES"); // Formato para región española
+    return formatter.format(number);
+  }
 
   @override
   void initState() {
@@ -46,7 +64,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? data = prefs.getString('subscriptions');
     if (data != null) {
-      final loadedSubscriptions = List<Map<String, dynamic>>.from(json.decode(data));
+      final loadedSubscriptions =
+          List<Map<String, dynamic>>.from(json.decode(data));
       setState(() {
         _subscriptions = loadedSubscriptions;
       });
@@ -123,18 +142,93 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     });
   }
 
+  Future<void> _launchURL() async {
+    const url = 'https://www.example.com';
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    double monthlyAverage = _calculateAverage('Monthly') * _exchangeRates[_currentCurrency]!;
-    double yearlyAverage = _calculateAverage('Yearly') * _exchangeRates[_currentCurrency]!;
-    double weeklyAverage = _calculateAverage('Weekly') * _exchangeRates[_currentCurrency]!;
+    double monthlyAverage =
+        _calculateAverage('Monthly') * _exchangeRates[_currentCurrency]!;
+    double yearlyAverage =
+        _calculateAverage('Yearly') * _exchangeRates[_currentCurrency]!;
+    double weeklyAverage =
+        _calculateAverage('Weekly') * _exchangeRates[_currentCurrency]!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Subscriptions'),
+        title: const Center(child: Text('Subscriptions')),
+        leading: IconButton(
+          icon: const Icon(Icons.info),
+          onPressed: _launchURL,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AddSubscriptionScreen(),
+                ),
+              );
+              if (result != null) {
+                _addSubscription(result);
+              }
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: GestureDetector(
+              onTap: _switchCurrency,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Total $_currentCurrency',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 15.0,
+                  ),
+                  Text(
+                    'Monthly:',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '${formatNumber(monthlyAverage)} ${_currencySymbols[_currentCurrency]}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  SizedBox(
+                    width: 15.0,
+                  ),
+                  Text(
+                    'Yearly:',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '${formatNumber(yearlyAverage)} ${_currencySymbols[_currentCurrency]}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ),
           Expanded(
             child: _subscriptions.isEmpty
                 ? const Center(child: Text('No subscriptions added.'))
@@ -148,55 +242,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                     },
                   ),
           ),
-                    Padding(
-            padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 35.0), // Más margen en la parte inferior
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: _switchCurrency,
-                  child: Text(
-                    'Currency: $_currentCurrency',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Monthly Average: ${monthlyAverage.toStringAsFixed(2)} $_currentCurrency',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Yearly Average: ${yearlyAverage.toStringAsFixed(2)} $_currentCurrency',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Weekly Average: ${weeklyAverage.toStringAsFixed(2)} $_currentCurrency',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddSubscriptionScreen(),
-            ),
-          );
-          if (result != null) {
-            _addSubscription(result);
-          }
-        },
-        child: const Icon(Icons.add),
       ),
     );
   }

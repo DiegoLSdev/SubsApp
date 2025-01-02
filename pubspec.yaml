@@ -10,10 +10,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  url_launcher: ^6.1.7  # Asegúrate de usar la última versión disponible
+  intl: ^0.18.0
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.3.4
   font_awesome_flutter: ^10.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
